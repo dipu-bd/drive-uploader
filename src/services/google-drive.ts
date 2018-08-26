@@ -69,19 +69,43 @@ export class GoogleDrive {
     })
   }
 
-  async listFiles() {
-    const res = await this.agent.files.list({
-      corpora: 'user',
-      includeTeamDriveItems: false,
+  async findFileByName(name: string) {
+    let response = await this.agent.files.list({
+      q: `name = '${name}'`,
     })
-    const files = res.data.files
-    if (files && files.length) {
-      return files.map(file => `${file.name} (${file.id})`)
+    if (response.data.files) {
+      return response.data.files
     }
     return []
   }
 
-  async createFile() {
-    this.agent.files.create()
+  async createFile(name: string, stream: NodeJS.ReadableStream, folderId?: string, contentType?: string) {
+    const response = await this.agent.files.create({
+      requestBody: {
+        name: name,
+        mimeType: contentType,
+        parents: folderId ? [ folderId ] : undefined,
+      },
+      media: {
+        mediaType: contentType,
+        body: stream,
+      },
+    })
+    return response.data
+  }
+
+  async getOrCreateFolder(name: string) {
+    // Try to find folder
+    const files = await this.findFileByName(name)
+    if (files.length) return files[0].id
+    // Otherwise, create new folder
+    const response = await this.agent.files.create({
+      requestBody: {
+        name,
+        mimeType: 'application/vnd.google-apps.folder',
+        description: 'Created by https://gitlab.com/dipu-bd/drive-uploader',
+      },
+    })
+    return response.data.id
   }
 }
