@@ -1,16 +1,24 @@
 {
   "extends": [
-      "tslint-config-standard"
+    "tslint-config-standard"
   ],
   "jsRules": {},
   "rules": {
-      "no-unused-variable": false,
-      "indent": [true, "spaces", 2],
-      "space-before-function-paren": [ true, {
-            "asyncArrow": "always",
-            "anonymous": "always",
-            "named": "never"
-        }]
+    "no-unused-variable": false,
+    "indent": [true, "spaces", 2],
+    "trailing-comma": {
+      "options": {
+        "multiline": "always",
+        "singleline": "never"
+      }
+    },
+    "space-before-function-paren": {
+      "options": {
+        "asyncArrow": "always",
+        "anonymous": "always",
+        "named": "never"
+      }
+    }
   },
   "rulesDirectory": []
 }

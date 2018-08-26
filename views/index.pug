@@ -1,5 +1,12 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{title}
+  h1 Drive Uploader
+
+  div Login Token:
+  pre= token
+
+  h3 List of files
+  ul
+    each val in files
+      li= val

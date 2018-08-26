@@ -1,52 +1,57 @@
-import chalk from 'chalk'
 import { google } from 'googleapis'
 import { OAuth2Client } from 'google-auth-library'
+
+const credentials = require('../configs/credentials.json')
 
 const SCOPES = [
   'https://www.googleapis.com/auth/drive',
   'https://www.googleapis.com/auth/drive.file',
-  'https://www.googleapis.com/auth/drive.appdata'
+  'https://www.googleapis.com/auth/drive.appdata',
 ]
 
+const REDIRECT_URI = 'http://localhost:3000/auth'
+
 export class GoogleDrive {
-  credentials: any
-  client?: OAuth2Client
+  client: OAuth2Client
 
-  constructor() {
-    this.loadCredentials()
+  constructor(client: OAuth2Client) {
+    this.client = client
   }
 
-  loadCredentials() {
-    try {
-      this.credentials = require('../configs/credentials.json')
-    } catch (err) {
-      console.log(chalk.dim('Error: Failed to load credentials'))
-      console.log(chalk.dim(err.stack))
-    }
+  /*-------------------------------------------------------------------------*\
+  |                            STATIC METHODS                                 |
+  \*-------------------------------------------------------------------------*/
+
+  private static createClient(): OAuth2Client {
+    const { client_secret, client_id } = credentials.web
+    const client = new google.auth.OAuth2(client_id, client_secret, REDIRECT_URI)
+    return client
   }
 
-  getAccessTokenUrl() {
-    // Create a client with credentials
-    const { client_secret, client_id, redirect_uris } = this.credentials.installed
-    const client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0])
+  public static getAccessTokenUrl(): string {
+    const client = this.createClient()
     const authUrl = client.generateAuthUrl({
       access_type: 'offline',
-      scope: SCOPES
+      scope: SCOPES,
     })
     return authUrl
   }
 
-  async makeClient(token: any) {
-    // Authorize a client with credentials
-    const { client_secret, client_id, redirect_uris } = this.credentials.installed
-    const client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0])
-    client.generateAuthUrl({
-      scope: SCOPES
-    })
-    // Check if we have previously stored a token.
-    client.setCredentials(token)
-    return client
+  public static async getAccessToken(code: string): Promise<string> {
+    const client = this.createClient()
+    const { tokens } = await client.getToken(code)
+    return JSON.stringify(tokens)
   }
+
+  public static getInstance(token: string): GoogleDrive {
+    const client = this.createClient()
+    client.setCredentials(JSON.parse(token))
+    return new GoogleDrive(client)
+  }
+
+  /*-------------------------------------------------------------------------*\
+  |                             LOCAL METHODS                                 |
+  \*-------------------------------------------------------------------------*/
 
   async listFiles() {
     if (!this.client) {
@@ -54,19 +59,15 @@ export class GoogleDrive {
     }
     const drive = google.drive({
       version: 'v3',
-      auth: this.client
+      auth: this.client,
     })
     const res = await drive.files.list({
-      pageSize: 10
+      pageSize: 10,
     })
     const files = res.data.files
     if (files && files.length) {
-      console.log('Files:')
-      files.map((file) => {
-        console.log(`${file.name} (${file.id})`)
-      })
-    } else {
-      console.log('No files found.')
+      return files.map(file => `${file.name} (${file.id})`)
     }
+    return []
   }
 }

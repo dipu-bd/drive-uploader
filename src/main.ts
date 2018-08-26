@@ -57,7 +57,7 @@ export class Server {
       src: path.join(__dirname, './assets/styles'),
       dest: path.join(__dirname, '../public'),
       indentedSyntax: true, // true = .sass and false = .scss
-      sourceMap: true
+      sourceMap: true,
     }))
   }
 
