@@ -1,4 +1,4 @@
-import { google } from 'googleapis'
+import { google, drive_v3 } from 'googleapis'
 import { OAuth2Client } from 'google-auth-library'
 
 const credentials = require('../configs/credentials.json')
@@ -10,6 +10,8 @@ const SCOPES = [
 ]
 
 const REDIRECT_URI = 'http://localhost:3000/auth'
+
+const cachedInstances = new Map<string, GoogleDrive>()
 
 export class GoogleDrive {
   client: OAuth2Client
@@ -44,30 +46,40 @@ export class GoogleDrive {
   }
 
   public static getInstance(token: string): GoogleDrive {
-    const client = this.createClient()
-    client.setCredentials(JSON.parse(token))
-    return new GoogleDrive(client)
+    const parsedToken = JSON.parse(token)
+    if (!cachedInstances.has(parsedToken.access_token)) {
+      const client = this.createClient()
+      client.setCredentials(parsedToken)
+      const gdrive = new GoogleDrive(client)
+      cachedInstances.set(parsedToken.access_token, gdrive)
+    }
+    return cachedInstances.get(parsedToken.access_token) as GoogleDrive
   }
 
   /*-------------------------------------------------------------------------*\
   |                             LOCAL METHODS                                 |
   \*-------------------------------------------------------------------------*/
 
-  async listFiles() {
-    if (!this.client) {
-      throw new Error('No client found')
-    }
-    const drive = google.drive({
+  get agent(): drive_v3.Drive {
+    return google.drive({
       version: 'v3',
       auth: this.client,
     })
-    const res = await drive.files.list({
-      pageSize: 10,
+  }
+
+  async listFiles() {
+    const res = await this.agent.files.list({
+      corpora: 'user',
+      includeTeamDriveItems: false,
     })
     const files = res.data.files
     if (files && files.length) {
       return files.map(file => `${file.name} (${file.id})`)
     }
     return []
+  }
+
+  async createFile() {
+    this.agent.files.create()
   }
 }

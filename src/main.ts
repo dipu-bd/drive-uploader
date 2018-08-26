@@ -1,9 +1,9 @@
 import chalk from 'chalk'
 import * as path from 'path'
-import * as express from 'express'
-import * as logger from 'morgan'
-import * as cookieParser from 'cookie-parser'
-import * as sass from 'node-sass-middleware'
+import express from 'express'
+import logger from 'morgan'
+import cookieParser from 'cookie-parser'
+import nodeSass from 'node-sass-middleware'
 import routes from './routes'
 
 declare var __DEV__: boolean
@@ -53,7 +53,7 @@ export class Server {
 
   private setupSassLoader() {
     // style loader setup
-    this.app.use(sass({
+    this.app.use(nodeSass({
       src: path.join(__dirname, './assets/styles'),
       dest: path.join(__dirname, '../public'),
       indentedSyntax: true, // true = .sass and false = .scss

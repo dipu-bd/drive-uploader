@@ -5,7 +5,6 @@ import { ErrorData } from '../models/error'
 
 export class HomeController {
   static async get(req: Request, res: Response) {
-    console.log(req.headers)
     // make sure they are logged in
     const token = req.cookies['_drive.token']
     if (!token || !token.length) {
