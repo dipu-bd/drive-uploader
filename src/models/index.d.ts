@@ -1,4 +1,5 @@
+import { DownloadItem } from '../services/downloader'
+
 export interface IndexData {
-  token: any
-  files: string[]
+  items: DownloadItem[]
 }
