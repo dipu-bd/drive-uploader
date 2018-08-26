@@ -1,15 +1,14 @@
-import { Request, Response } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import { GoogleDrive } from '../services/google-drive'
 import { IndexData } from '../models/index'
 import { ErrorData } from '../models/error'
 import { Downloader, DownloadItem } from '../services/downloader'
 
 export class HomeController {
-  static async get(req: Request, res: Response) {
+  static async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const token = JSON.parse(req.cookies['_drive.token'])
-      const drive = GoogleDrive.getInstance(token)
-      const downloader = Downloader.getInstance(drive)
+      const id = req.cookies.id
+      const downloader = Downloader.getInstance(id)
 
       if (req.query.url) {
         const item = DownloadItem.createInstance(req.query.url)
@@ -22,6 +21,7 @@ export class HomeController {
       res.render('index', data)
     } catch (err) {
       res.render('error', { error: err, message: err.message } as ErrorData)
+      next(err)
     }
   }
 }

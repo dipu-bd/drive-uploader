@@ -1,11 +1,28 @@
+import uuid from 'uuid'
+import chalk from 'chalk'
 import { Request, Response, NextFunction } from 'express'
 import { GoogleDrive } from '../services/google-drive'
 
-export function AuthMiddleware(req: Request, res: Response, next: NextFunction) {
-  const token = req.cookies['_drive.token']
-  if (!token || !token.length) {
-    res.redirect(GoogleDrive.getAccessTokenUrl())
-  } else {
-    next()
+export default function (req: Request, res: Response, next: NextFunction) {
+  // Generate user id
+  const id = req.cookies.id
+  if (!id || !id.length) {
+    res.cookie('id', uuid.v4(), {
+      maxAge: 120 * 24 * 3600 * 1000, // 120 days
+    })
+    res.redirect(req.originalUrl)
+    return console.log(chalk.dim('New id generated: ' + id))
   }
+  next()
+}
+
+export function CheckToken(req: Request, res: Response, next: NextFunction) {
+  // Check if has access token
+  const id = req.cookies.id
+  if (!GoogleDrive.hasAccessToken(id)) {
+    console.log(chalk.dim('Access token check failed for ' + id))
+    const authUrl = GoogleDrive.getAccessTokenUrl()
+    return res.redirect(authUrl)
+  }
+  next()
 }

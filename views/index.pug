@@ -2,7 +2,9 @@ extends layout
 
 block content
   main: section#index
-    h1 Drive Uploader
+    h1
+      span Drive Uploader <br>
+      small: a.refresh-token(href="/auth/refresh") Refresh Access Token
 
     form(action="/")
       label File URL

@@ -1,5 +1,7 @@
+import chalk from 'chalk'
 import { google, drive_v3 } from 'googleapis'
 import { OAuth2Client } from 'google-auth-library'
+import { Credentials } from 'google-auth-library/build/src/auth/credentials';
 
 const credentials = require('../configs/credentials.json')
 
@@ -9,18 +11,14 @@ const SCOPES = [
   'https://www.googleapis.com/auth/drive.appdata',
 ]
 
-const REDIRECT_URI = 'http://localhost:3000/auth'
+const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/auth'
 
-const cachedInstances = new Map<string, GoogleDrive>()
+const cachedTokens = new Map<string, Credentials>()
+const cachedClients = new Map<string, OAuth2Client>()
+const cachedGoogleDrives = new Map<string, GoogleDrive>()
 
 export class GoogleDrive {
   readonly id: string
-  client: OAuth2Client
-
-  constructor(id: string, client: OAuth2Client) {
-    this.id = id
-    this.client = client
-  }
 
   /*-------------------------------------------------------------------------*\
   |                            STATIC METHODS                                 |
@@ -41,32 +39,52 @@ export class GoogleDrive {
     return authUrl
   }
 
-  public static async getAccessToken(code: string): Promise<string> {
-    const client = this.createClient()
-    const { tokens } = await client.getToken(code)
-    return JSON.stringify(tokens)
+  public static hasAccessToken(id: string) {
+    return cachedTokens.has(id) && cachedClients.has(id)
   }
 
-  public static getInstance(token: any): GoogleDrive {
-    const id = token.access_token
-    if (!cachedInstances.has(id)) {
-      const client = this.createClient()
-      client.setCredentials(token)
-      const gdrive = new GoogleDrive(id, client)
-      cachedInstances.set(id, gdrive)
+  public static async setAccessToken(id: string, code: string) {
+    const client = this.createClient()
+    const { tokens } = await client.getToken(code)
+    cachedTokens.set(id, tokens)
+    console.log(chalk.dim('Set new access token for ' + id))
+    client.setCredentials(tokens)
+    cachedClients.set(id, client)
+    console.log(chalk.dim('Generated new client for ' + id))
+  }
+
+  public static getInstance(id: string): GoogleDrive {
+    if (!cachedGoogleDrives.has(id)) {
+      cachedGoogleDrives.set(id, new GoogleDrive(id))
+      console.log(chalk.dim('Created GoogleDrive instance for ' + id))
     }
-    return cachedInstances.get(id) as GoogleDrive
+    return cachedGoogleDrives.get(id) as GoogleDrive
   }
 
   /*-------------------------------------------------------------------------*\
   |                             LOCAL METHODS                                 |
   \*-------------------------------------------------------------------------*/
 
+  private constructor(id: string) {
+    this.id = id
+  }
+
+  get client(): OAuth2Client {
+    return cachedClients.get(this.id) as OAuth2Client
+  }
+
   get agent(): drive_v3.Drive {
     return google.drive({
       version: 'v3',
       auth: this.client,
     })
+  }
+
+  async refreshToken() {
+    const res = await this.client.refreshAccessToken()
+    const client = GoogleDrive.createClient()
+    client.setCredentials(res.credentials)
+    cachedClients.set(this.id, client)
   }
 
   async findFileByName(name: string) {

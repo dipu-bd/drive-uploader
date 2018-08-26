@@ -1,3 +1,4 @@
+import chalk from 'chalk'
 import fetch from 'node-fetch'
 import { GoogleDrive } from './google-drive'
 
@@ -36,23 +37,27 @@ export class DownloadItem {
 }
 
 export class Downloader {
-  readonly drive: GoogleDrive
+  readonly id: string
   concurrent: number = 3
   private items = new Map<string, DownloadItem>()
 
   private running = 0
   private queue = new Array<DownloadItem>()
 
-  constructor(drive: GoogleDrive) {
-    this.drive = drive
-  }
-
-  public static getInstance(drive: GoogleDrive): Downloader {
-    const id = drive.id
+  public static getInstance(id: string): Downloader {
     if (!cacheDownloader.has(id)) {
-      cacheDownloader.set(id, new Downloader(drive))
+      cacheDownloader.set(id, new Downloader(id))
+      console.log(chalk.dim('Created Downloader instance for ' + id))
     }
     return cacheDownloader.get(id) as Downloader
+  }
+
+  private constructor(id: string) {
+    this.id = id
+  }
+
+  get drive(): GoogleDrive {
+    return GoogleDrive.getInstance(this.id)
   }
 
   get list() {
@@ -76,6 +81,10 @@ export class Downloader {
     this.queue.push(item)
     this.start()
   }
+
+  /*-------------------------------------------------------------------------*\
+  |                               DOWNLOADERS                                 |
+  \*-------------------------------------------------------------------------*/
 
   async downloadItem(item: DownloadItem) {
     item.status = 'Getting metadata'
