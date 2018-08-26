@@ -5,7 +5,15 @@
   "jsRules": {},
   "rules": {
       "no-unused-variable": false,
-      "indent": [true, "spaces", 2]
+      "indent": [true, "spaces", 2],
+      "space-before-function-paren": [
+            true,
+            {
+                "asyncArrow": "always",
+                "anonymous": "always",
+                "named": "never",
+            }
+        ]
   },
   "rulesDirectory": []
 }
