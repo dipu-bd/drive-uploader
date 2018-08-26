@@ -54,10 +54,11 @@ export class Server {
   private setupSassLoader() {
     // style loader setup
     this.app.use(nodeSass({
-      src: path.join(__dirname, './assets/styles'),
+      src: path.join(__dirname, './assets'),
       dest: path.join(__dirname, '../public'),
       indentedSyntax: true, // true = .sass and false = .scss
       sourceMap: true,
+      outputStyle: 'compressed',
     }))
   }
 

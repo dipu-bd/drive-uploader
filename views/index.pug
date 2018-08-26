@@ -1,10 +1,22 @@
 extends layout
 
 block content
-  h1 Drive Uploader
+  div#index
+    h1 Drive Uploader
 
-  form(action="/download")
-    label File URL: 
-    input(type="text" name="url" placeholder="Enter a file url") 
-    button(type="submit") Download
+    form(action="/")
+      label File URL
+      input(type="text" name="url" placeholder="Enter a file url")
+      button(type="submit") Download
 
+    table()
+      tr
+        th File
+        th Progress
+        th Status
+        th Action
+      each item in items
+        tr
+          td: a(href=item.url target="_blank")= item.name
+          td= item.progress + '%'
+          td= item.status

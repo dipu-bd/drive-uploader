@@ -14,6 +14,7 @@ export class HomeController {
       if (req.query.url) {
         const item = DownloadItem.createInstance(req.query.url)
         downloader.addToQueue(item)
+        return res.redirect('/')
       }
 
       const data = {} as IndexData

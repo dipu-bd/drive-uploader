@@ -1,8 +1,3 @@
-body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif; }
-
-a {
-  color: #00B7FF; }
+body{padding:20px;display:flex;justify-content:center;align-items:center}#index{width:800px;min-height:400px}#index h1{text-align:center;color:#666}#index form{margin:10px;display:flex;justify-content:center}#index form label{padding:10px;font-weight:bold;text-align:right}#index form input{flex-grow:1;padding:10px;border:1px solid #dededf;outline:none;border-radius:3px}#index form button{display:inline-block;width:150px;padding:10px;margin:0 10px;font-weight:bold;outline:none;border:1px solid #cce;border-radius:3px;background:#90caf9}#index form button:hover{outline:none;background:#64b5f6}#index form button:active{outline:none;background:#42a5f5}#index table{width:100%;margin:10px;border:1px solid #dddddd}#index table td,#index table th{padding:10px;border:1px solid #dddddd}
 
 /*# sourceMappingURL=style.css.map */
