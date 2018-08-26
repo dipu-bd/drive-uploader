@@ -56,7 +56,7 @@ export class Downloader {
   }
 
   get list() {
-    return [...this.items.values()]
+    return [...this.items.values()].reverse()
   }
 
   start () {
