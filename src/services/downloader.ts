@@ -15,6 +15,8 @@ export class DownloadItem {
 
   contentType = ''
   contentLength = 0
+  contentStream?: NodeJS.ReadableStream
+  driveUrl?: string
 
   private constructor(url: string) {
     this.url = url
@@ -79,30 +81,51 @@ export class Downloader {
     item.status = 'Getting metadata'
     await this.getMetadata(item)
     if (item.forceStop) return
+    await this.createDriveFile(item)
+    item.finished = true
     this.running--
   }
 
   async getMetadata (item: DownloadItem) {
-    const res = await fetch(item.url)
-    item.contentType = res.headers.get('content-type') || ''
-    item.contentLength = Number.parseInt(res.headers.get('content-length') || '0', 10) || 0
-    item.status = `Metadata: content-type=${item.contentType}, length=${item.contentLength}`
+    if (item.finished) return
+    try {
+      const res = await fetch(item.url)
+      item.contentStream = res.body
+      item.contentType = res.headers.get('content-type') || ''
+      item.contentLength = Number.parseInt(res.headers.get('content-length') || '0', 10) || 0
+      if (!item.contentType) {
+        throw new Error('No content type')
+      }
+      if (!item.contentStream) {
+        throw new Error('No content stream')
+        item.finished = true
+      }
+      item.status = `Content type = '${item.contentType}', Length = ${item.contentLength} bytes`
+    } catch (err) {
+      item.status = err.stack.split('\n')[0]
+      item.finished = true
+    }
+  }
+
+  async createDriveFile (item: DownloadItem) {
+    if (item.finished) return
+    try {
+      item.status = 'Creating download folder...'
+      const folder = await this.drive.getOrCreateFolder('Downloads')
+      item.status = 'Uploading file...'
+      if (!item.contentStream) return
+      const file = await this.drive.createFile(
+        item.name,
+        item.contentStream,
+        folder,
+        item.contentType,
+      )
+      item.driveUrl = `https://drive.google.com/file/d/${file.id}/view`
+      item.status = 'Done'
+    } catch (err) {
+      console.error(err.stack)
+      item.status = err.stack.split('\n')[0]
+      item.finished = true
+    }
   }
 }
-
-/*
-Headers {
-  [Symbol(map)]: 
-   { date: [ 'Sun, 26 Aug 2018 20:46:57 GMT' ],
-     server: [ 'Apache' ],
-     vary: [ 'Accept-Encoding' ],
-     'last-modified': [ 'Thu, 18 Jul 2013 17:05:03 GMT' ],
-     'accept-ranges': [ 'bytes' ],
-     'content-length': [ '514414' ],
-     'cache-control': [ 'max-age=604800, public, must-revalidate, proxy-revalidate' ],
-     expires: [ 'Sun, 02 Sep 2018 20:46:57 GMT' ],
-     pragma: [ 'public' ],
-     'x-powered-by': [ 'W3 Total Cache/0.9.6' ],
-     connection: [ 'close' ],
-     'content-type': [ 'image/jpeg' ] } }
-*/

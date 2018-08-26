@@ -1,7 +1,7 @@
 extends layout
 
 block content
-  div#index
+  main: section#index
     h1 Drive Uploader
 
     form(action="/")
@@ -9,14 +9,18 @@ block content
       input(type="text" name="url" placeholder="Enter a file url")
       button(type="submit") Download
 
-    table()
+    table
       tr
         th File
-        th Progress
         th Status
-        th Action
       each item in items
         tr
           td: a(href=item.url target="_blank")= item.name
-          td= item.progress + '%'
-          td= item.status
+          if item.finished && item.driveUrl
+            td: a(href=item.driveUrl target="_blank") Open in drive
+          else
+            td= item.status
+      if !items.length
+        tr
+          td(colspan="10" style="text-align: center")
+            code(style="color: grey") No files found
