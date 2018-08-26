@@ -3,7 +3,8 @@ extends layout
 block content
   h1 Drive Uploader
 
-  h3 List of files
-  ul
-    each val in files
-      li= val
+  form(action="/download")
+    label File URL: 
+    input(type="text" name="url" placeholder="Enter a file url") 
+    button(type="submit") Download
+
