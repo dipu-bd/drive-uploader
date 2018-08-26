@@ -14,9 +14,11 @@ const REDIRECT_URI = 'http://localhost:3000/auth'
 const cachedInstances = new Map<string, GoogleDrive>()
 
 export class GoogleDrive {
+  readonly id: string
   client: OAuth2Client
 
-  constructor(client: OAuth2Client) {
+  constructor(id: string, client: OAuth2Client) {
+    this.id = id
     this.client = client
   }
 
@@ -45,15 +47,15 @@ export class GoogleDrive {
     return JSON.stringify(tokens)
   }
 
-  public static getInstance(token: string): GoogleDrive {
-    const parsedToken = JSON.parse(token)
-    if (!cachedInstances.has(parsedToken.access_token)) {
+  public static getInstance(token: any): GoogleDrive {
+    const id = token.access_token
+    if (!cachedInstances.has(id)) {
       const client = this.createClient()
-      client.setCredentials(parsedToken)
-      const gdrive = new GoogleDrive(client)
-      cachedInstances.set(parsedToken.access_token, gdrive)
+      client.setCredentials(token)
+      const gdrive = new GoogleDrive(id, client)
+      cachedInstances.set(id, gdrive)
     }
-    return cachedInstances.get(parsedToken.access_token) as GoogleDrive
+    return cachedInstances.get(id) as GoogleDrive
   }
 
   /*-------------------------------------------------------------------------*\
