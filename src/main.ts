@@ -1,8 +1,8 @@
 import chalk from 'chalk'
 import * as path from 'path'
 import * as express from 'express'
-import * as cookieParser from 'cookie-parser'
 import * as logger from 'morgan'
+import * as cookieParser from 'cookie-parser'
 import * as sass from 'node-sass-middleware'
 import routes from './routes'
 
@@ -20,7 +20,7 @@ export class Server {
   }
 
   private getPort(): number {
-    return parseInt(process.env.PORT, 10) || 3000
+    return parseInt(process.env.PORT || '3000', 10)
   }
 
   private start(): void {
@@ -54,7 +54,7 @@ export class Server {
   private setupSassLoader() {
     // style loader setup
     this.app.use(sass({
-      src: path.join(__dirname, '../public'),
+      src: path.join(__dirname, './assets/styles'),
       dest: path.join(__dirname, '../public'),
       indentedSyntax: true, // true = .sass and false = .scss
       sourceMap: true

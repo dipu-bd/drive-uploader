@@ -9,7 +9,7 @@
       "space-before-function-paren": [ true, {
             "asyncArrow": "always",
             "anonymous": "always",
-            "named": "never",
+            "named": "never"
         }]
   },
   "rulesDirectory": []
