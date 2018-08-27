@@ -106,9 +106,10 @@ export class GoogleDrive {
     })
   }
 
-  async findFileByName(name: string) {
+  async findFileByName(name: string, folder?: string) {
     let response = await this.agent.files.list({
-      q: `name = '${name}'`,
+      q: `name = '${name}'` +
+        (folder ? `and '${folder}' in parents` : ''),
     })
     if (response.data.files) {
       return response.data.files
@@ -116,9 +117,9 @@ export class GoogleDrive {
     return []
   }
 
-  async getOrCreateFolder(name: string, uploadHandler?: (progress: any) => void) {
+  async getOrCreateFolder(name: string, folder?: string) {
     // Try to find folder
-    const files = await this.findFileByName(name)
+    const files = await this.findFileByName(name, folder)
     if (files.length) return files[0].id
     // Otherwise, create new folder
     const response = await this.agent.files.create({
@@ -126,24 +127,16 @@ export class GoogleDrive {
         name,
         mimeType: 'application/vnd.google-apps.folder',
         description: 'Created by https://gitlab.com/dipu-bd/drive-uploader',
+        parents: folder ? [ folder ] : undefined,
       },
-    }, {
-      onUploadProgress: uploadHandler,
     })
     return response.data.id
   }
 
   async createFile(item: DownloadItem, stream: NodeJS.ReadableStream) {
-    // define upload progress handler
-    const uploadHandler = (status: string) => {
-      return (progress: any) => {
-        item.updateProgress('Uploading...', progress.bytesRead)
-      }
-    }
-
     // create a folder
     item.status = 'Creating download folder...'
-    const folder = await this.getOrCreateFolder('Downloads', uploadHandler('Creating folder... '))
+    const folder = await this.getOrCreateFolder('Downloads')
 
     // upload current file
     item.status = 'Uploading file...'
@@ -158,7 +151,9 @@ export class GoogleDrive {
         body: stream,
       },
     }, {
-      onUploadProgress: uploadHandler('Uploading... '),
+      onUploadProgress(progress) {
+        item.updateProgress('Uploading...', progress.bytesRead)
+      },
     })
 
     const file = response.data

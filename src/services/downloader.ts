@@ -253,9 +253,11 @@ export class Downloader {
   async uploadToDrive (item: DownloadItem) {
     if (item.finished || item.forceStop) return
     try {
-      // create a read stream
+      // get and unlink the read stream
       const stream = item.contentStream
       if (item.forceStop || !stream) return
+      item.contentStream = undefined
+
       // upload to drive
       await this.drive.createFile(item, stream)
     } catch (err) {
