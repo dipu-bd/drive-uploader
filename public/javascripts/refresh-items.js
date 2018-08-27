@@ -73,7 +73,7 @@ window.autoRefresh = function () {
     interval = setInterval(() => {
       if (!$ || !$.ajax) return;
       window.refreshItems();
-    }, 300);
+    }, 1000);
   }
 }
 
