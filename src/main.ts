@@ -4,7 +4,6 @@ import * as path from 'path'
 import express from 'express'
 import logger from 'morgan'
 import cookieParser from 'cookie-parser'
-import nodeSass from 'node-sass-middleware'
 import routes from './routes'
 
 declare var __DEV__: boolean
@@ -40,7 +39,6 @@ export class Server {
   private setupApp(): void {
     this.setupMiddlewares()
     this.setupView()
-    this.setupSassLoader()
     this.app.use(routes)
   }
 
@@ -52,16 +50,16 @@ export class Server {
     this.app.set('view engine', 'pug')
   }
 
-  private setupSassLoader() {
-    // style loader setup
-    this.app.use(nodeSass({
-      src: path.join(__dirname, './assets'),
-      dest: path.join(__dirname, '../public'),
-      indentedSyntax: true, // true = .sass and false = .scss
-      sourceMap: true,
-      outputStyle: 'compressed',
-    }))
-  }
+  // private setupSassLoader() {
+  //   // style loader setup
+  //   this.app.use(nodeSass({
+  //     src: path.join(__dirname, './assets'),
+  //     dest: path.join(__dirname, '../public'),
+  //     indentedSyntax: true, // true = .sass and false = .scss
+  //     sourceMap: true,
+  //     // outputStyle: 'compressed',
+  //   }))
+  // }
 
   private setupMiddlewares() {
     // setup middlewares
