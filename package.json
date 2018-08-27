@@ -3,8 +3,8 @@
   "name": "drive-uploader",
   "version": "1.0.0",
   "scripts": {
-    "start": "node -r dotenv/config ./build/main",
-    "dev": "backpack -r dotenv/config",
+    "start": "node ./build/main",
+    "dev": "backpack",
     "build": "backpack build",
     "lint": "tslint --project tsconfig.json src/**/*.ts",
     "lint:fix": "npm run lint -- --fix"
