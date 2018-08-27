@@ -59,6 +59,7 @@ export class Downloader {
   concurrent: number = 3
   private items = new Map<string, DownloadItem>()
 
+  private interval: any
   private running = 0
   private queue = new Array<DownloadItem>()
 
@@ -76,11 +77,9 @@ export class Downloader {
 
   public static logoutSession(id: string) {
     const downloader = cachedDownloader.get(id)
-    if (downloader) {
-      downloader.queue = []
-      downloader.list.forEach(v => v.forceStop = true)
-    }
-    cachedDownloader.delete(id)
+    if (!downloader) return
+    downloader.queue = []
+    downloader.list.forEach(v => v.stop())
   }
 
   public static *allSessions() {
@@ -103,7 +102,6 @@ export class Downloader {
 
   private constructor(id: string) {
     this.id = id
-    setInterval(async () => this.start(), 1000)
   }
 
   get drive(): GoogleDrive {
@@ -120,7 +118,21 @@ export class Downloader {
     })
   }
 
-  async start () {
+  start() {
+    if (this.interval) return
+    this.interval = setInterval(async () => this.downloader(), 1000)
+  }
+
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval)
+      this.interval = null
+    }
+    this.queue = []
+    this.list.forEach(v => v.stop())
+  }
+
+  private async downloader () {
     await this.wait(1000)
     while (this.queue.length) {
       if (this.running <= this.concurrent) {

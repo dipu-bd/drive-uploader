@@ -25,7 +25,6 @@ export class AuthController {
       const id = req.cookies.id
       Downloader.logoutSession(id)
       GoogleDrive.logoutSession(id)
-      res.clearCookie('id')
       res.redirect('/')
     } catch (err) {
       res.render('error', {
