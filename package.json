@@ -8,7 +8,7 @@
     "build": "backpack build",
     "lint": "tslint --project tsconfig.json src/**/*.ts",
     "lint:fix": "npm run lint -- --fix",
-    "server": "ssh root@172.104.173.195 && cd /var/www/node/drive-uploader && sh build.sh"
+    "server": "ssh root@172.104.173.195 \"cd /var/www/node/drive-uploader && sh build.sh\""
   },
   "dependencies": {
     "chalk": "^2.4.1",
