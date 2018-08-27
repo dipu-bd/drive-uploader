@@ -190,7 +190,8 @@ export class Downloader {
   async downloadItem(item: DownloadItem) {
     try {
       this.running++
-      await this.downloadFile(item)
+      await this.getMetadata(item)
+      // await this.downloadFile(item)
       await this.uploadToDrive(item)
       await this.cleanup(item)
     } finally {
@@ -198,7 +199,7 @@ export class Downloader {
     }
   }
 
-  async downloadFile (item: DownloadItem) {
+  async getMetadata(item: DownloadItem) {
     if (item.finished || item.forceStop) return
     try {
       // get content type
@@ -206,8 +207,16 @@ export class Downloader {
       const meta = await fetch(item.url)
       item.contentType = meta.headers.get('content-type') || ''
       item.contentLength = Number.parseInt(meta.headers.get('content-length') || '0', 10) || 0
-      if (item.forceStop) return
+      item.contentStream = meta.body
+    } catch (err) {
+      item.status = err.stack.split('\n')[0]
+      item.forceStop = true
+    }
+  }
 
+  async downloadFile (item: DownloadItem) {
+    if (item.finished || item.forceStop) return
+    try {
       // create a temp file
       const tempPath = path.resolve(__dirname, '../../.downloads')
       const filename = uuid.v4()
@@ -234,6 +243,7 @@ export class Downloader {
       })
 
       await downloader
+      item.contentStream = fs.createReadStream(item.tempFile)
     } catch (err) {
       item.status = err.stack.split('\n')[0]
       item.forceStop = true
@@ -244,8 +254,8 @@ export class Downloader {
     if (item.finished || item.forceStop) return
     try {
       // create a read stream
-      const stream = fs.createReadStream(item.tempFile)
-      if (item.forceStop) return
+      const stream = item.contentStream
+      if (item.forceStop || !stream) return
       // upload to drive
       await this.drive.createFile(item, stream)
     } catch (err) {
