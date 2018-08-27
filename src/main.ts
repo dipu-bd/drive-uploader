@@ -63,10 +63,15 @@ export class Server {
 
   private setupMiddlewares() {
     // setup middlewares
-    this.app.use(logger(__DEV__ ? 'dev' : 'combined'))
     this.app.use(express.json())
     this.app.use(cookieParser())
     this.app.use(express.urlencoded({ extended: false }))
+    // loogger
+    this.app.use(logger(__DEV__ ? 'dev' : 'combined', {
+      skip(req, res) {
+        return (req.url === '/api/downloads')
+      },
+    }))
   }
 }
 
