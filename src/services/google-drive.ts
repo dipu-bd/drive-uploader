@@ -161,7 +161,9 @@ export class GoogleDrive {
       onUploadProgress: uploadHandler('Uploading... '),
     })
 
-    return response.data
+    const file = response.data
+    item.driveUrl = `https://drive.google.com/file/d/${file.id}/view`
+    return file
   }
 
 }
