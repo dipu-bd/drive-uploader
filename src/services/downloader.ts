@@ -47,7 +47,7 @@ export class Downloader {
   public static getInstance(id: string): Downloader {
     if (!cacheDownloader.has(id)) {
       cacheDownloader.set(id, new Downloader(id))
-      console.log(chalk.dim('Created Downloader instance for ' + id))
+      console.log(chalk.dim('Created Downloader instance for'), chalk.blue(id))
     }
     return cacheDownloader.get(id) as Downloader
   }

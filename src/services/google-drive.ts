@@ -43,22 +43,35 @@ export class GoogleDrive {
     return cachedTokens.has(id) && cachedClients.has(id)
   }
 
-  public static async setAccessToken(id: string, code: string) {
+  public static saveAccessToken(id: string, tokens: Credentials) {
     const client = this.createClient()
-    const { tokens } = await client.getToken(code)
     cachedTokens.set(id, tokens)
-    console.log(chalk.dim('Set new access token for ' + id))
+    console.log(chalk.dim('Set new access token for'), chalk.blue(id))
     client.setCredentials(tokens)
     cachedClients.set(id, client)
-    console.log(chalk.dim('Generated new client for ' + id))
+    console.log(chalk.dim('Generated new client for'), chalk.blue(id))
   }
 
   public static getInstance(id: string): GoogleDrive {
     if (!cachedGoogleDrives.has(id)) {
       cachedGoogleDrives.set(id, new GoogleDrive(id))
-      console.log(chalk.dim('Created GoogleDrive instance for ' + id))
+      console.log(chalk.dim('Created GoogleDrive instance for'), chalk.blue(id))
     }
     return cachedGoogleDrives.get(id) as GoogleDrive
+  }
+
+  public static async generateNewToken(id: string, code: string) {
+    const client = this.createClient()
+    const res = await client.getToken(code)
+    console.log(chalk.dim('Generated new token for'), chalk.blue(id))
+    return res.tokens
+  }
+
+  public static async generateRefreshToken(id: string) {
+    const client = cachedClients.get(id) as OAuth2Client
+    if (!client) throw new Error('No client found for ' + id)
+    const res = await client.refreshAccessToken()
+    return res.credentials
   }
 
   /*-------------------------------------------------------------------------*\
@@ -78,13 +91,6 @@ export class GoogleDrive {
       version: 'v3',
       auth: this.client,
     })
-  }
-
-  async refreshToken() {
-    const res = await this.client.refreshAccessToken()
-    const client = GoogleDrive.createClient()
-    client.setCredentials(res.credentials)
-    cachedClients.set(this.id, client)
   }
 
   async findFileByName(name: string) {

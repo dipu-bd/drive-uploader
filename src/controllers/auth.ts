@@ -7,7 +7,8 @@ export class AuthController {
     try {
       const id = req.cookies.id
       const code = req.query.code
-      await GoogleDrive.setAccessToken(id, code)
+      const token = await GoogleDrive.generateNewToken(id, code)
+      GoogleDrive.saveAccessToken(id, token)
       res.redirect('/')
     } catch (err) {
       res.render('error', {
@@ -21,7 +22,8 @@ export class AuthController {
   static async refreshToken(req: Request, res: Response, next: NextFunction) {
     try {
       const id = req.cookies.id
-      await GoogleDrive.getInstance(id).refreshToken()
+      const token = await GoogleDrive.generateRefreshToken(id)
+      GoogleDrive.saveAccessToken(id, token)
     } catch (err) {
       res.render('error', {
         error: err,

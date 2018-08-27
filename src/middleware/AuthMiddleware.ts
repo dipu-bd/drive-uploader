@@ -5,13 +5,14 @@ import { GoogleDrive } from '../services/google-drive'
 
 export default function (req: Request, res: Response, next: NextFunction) {
   // Generate user id
-  const id = req.cookies.id
+  let id = req.cookies.id
   if (!id || !id.length) {
-    res.cookie('id', uuid.v4(), {
+    id = uuid.v4()
+    res.cookie('id', id, {
       maxAge: 120 * 24 * 3600 * 1000, // 120 days
     })
     res.redirect(req.originalUrl)
-    return console.log(chalk.dim('New id generated: ' + id))
+    return console.log(chalk.dim('New id generated: '), chalk.blue(id))
   }
   next()
 }
@@ -20,7 +21,7 @@ export function CheckToken(req: Request, res: Response, next: NextFunction) {
   // Check if has access token
   const id = req.cookies.id
   if (!GoogleDrive.hasAccessToken(id)) {
-    console.log(chalk.dim('Access token check failed for ' + id))
+    console.log(chalk.dim('Getting new access token for'), chalk.blue(id))
     const authUrl = GoogleDrive.getAccessTokenUrl()
     return res.redirect(authUrl)
   }
