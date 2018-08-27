@@ -10,6 +10,8 @@ router.use(AuthMiddleware)
 
 router.get('/api/list', ApiShield, ApiController.listIds)
 router.get('/api/downloads/:id', ApiShield, ApiController.getDownload)
+router.get('/api/downloads', ApiController.getDownload)
+router.get('/api/download/stop', ApiController.stopDownload)
 
 router.get('/auth', AuthController.get)
 router.get('/auth/logout', AuthController.logout)

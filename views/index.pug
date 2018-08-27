@@ -1,6 +1,8 @@
 extends layout
 
 block content
+  script(src="/javascripts/refresh-items.js")
+
   main: section#index
     h1 Drive Uploader
     form(method="post")
@@ -10,20 +12,28 @@ block content
 
     .control-area
       button.btn(onclick="location.href = '/auth/logout'" style="background: red") Logout
-      button.btn(onclick="location.reload()" style="background: #ccc") Refresh
+      div(style="display: inline-block")
+        label(style="padding: 10px 20px")
+          input(type="checkbox" oninput="autoRefresh()")
+          span Auto Refresh
+        button.btn(onclick="refreshItems()" style="background: #ccc") Refresh
 
     table
       tr
-        th File
+        th(width="300px") File
         th Status
-      each item in items
-        tr
-          td: a(href=item.url target="_blank")= item.name
-          if item.finished && item.driveUrl
-            td: a(href=item.driveUrl target="_blank") Open in drive
-          else
-            td= item.status
-      if !items.length
-        tr
-          td(colspan="10" style="text-align: center")
-            code(style="color: grey") No files found
+        th(width="80px") Actions
+      tbody#table-body
+        each item in items
+          tr
+            td: a(href=item.url target="_blank")= item.name
+            if item.finished && item.driveUrl
+              td: a(href=item.driveUrl target="_blank") Open in drive
+            else
+              td= item.status
+            td(style="text-align: center")
+              button.btn.btn-sm(style="background: #ddd" onclick=`stopItem("${item.url}")`) Stop
+        if !items.length
+          tr
+            td(colspan="10" style="text-align: center")
+              code(style="color: grey") No files found

@@ -11,11 +11,11 @@ export class ApiController {
     for (const id of Downloader.allSessions()) {
       ids.add(id)
     }
-    res.json(ids)
+    res.json([...ids.values()])
   }
 
   static async getDownload(req: Request, res: Response, next: NextFunction) {
-    const id = req.params.id
+    const id = req.params.id || req.cookies.id
     const downloader = Downloader.getInstance(id)
     if (!downloader) {
       return res.status(500).send('No such downloader')
@@ -33,4 +33,16 @@ export class ApiController {
     })))
   }
 
+  static async stopDownload(req: Request, res: Response, next: NextFunction) {
+    const id = req.cookies.id
+    const url = req.query.url
+    const downloader = Downloader.getInstance(id)
+    if (!downloader) {
+      return res.send('Invalid access')
+    }
+    if (!downloader.stopItem(url)) {
+      return res.send('No such item')
+    }
+    return res.send('OK')
+  }
 }

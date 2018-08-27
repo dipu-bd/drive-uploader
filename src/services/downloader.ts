@@ -24,6 +24,7 @@ export class DownloadItem {
   downloader: any
   contentType = ''
   contentLength = 0
+  request?: any
   contentStream?: NodeJS.ReadableStream
 
   constructor(url: string, parent: Downloader) {
@@ -33,12 +34,12 @@ export class DownloadItem {
   }
 
   stop() {
+    console.log('stopping.....')
     this.forceStop = true
-  }
-
-  delete() {
-    if (!this.parent) return
-    this.parent.removeItem(this.url)
+    this.status = 'Stopped'
+    if (this.request) {
+      this.request.abort()
+    }
   }
 }
 
@@ -121,8 +122,15 @@ export class Downloader {
     this.start()
   }
 
-  removeItem(url: string) {
-    this.items.delete(url)
+  removeItem(url: string): boolean {
+    return !!this.items.delete(url)
+  }
+
+  stopItem(url: string): boolean {
+    const item = this.items.get(url)
+    if (!item) return false
+    item.stop()
+    return true
   }
 
   /*-------------------------------------------------------------------------*\
@@ -144,6 +152,7 @@ export class Downloader {
       const meta = await fetch(item.url)
       item.contentType = meta.headers.get('content-type') || ''
       item.contentLength = Number.parseInt(meta.headers.get('content-length') || '0', 10) || 0
+      if (item.forceStop) return
 
       // create a temp file
       const tempPath = path.resolve(__dirname, '../../.downloads')
@@ -159,15 +168,22 @@ export class Downloader {
       })
 
       // check progress
+      downloader.on('request', request => {
+        item.request = request
+      })
       downloader.on('downloadProgress', progress => {
-        item.progress = progress.percent
-        item.status = `${progress.percent.toFixed(2)}% (${progress.transferred}/${progress.total})`
+        if (item.forceStop) return
+        item.progress = progress.percent * 100
+        const done = progress.transferred
+        const total = item.contentLength
+        item.status = `Downloading... ${item.progress.toFixed(2)}% (${done}/${total})`
       })
       downloader.on('error', error => {
         item.status = error + ''
         item.forceStop = true
       })
-      return downloader
+
+      await downloader
     } catch (err) {
       item.status = err.stack.split('\n')[0]
       item.forceStop = true
@@ -179,23 +195,13 @@ export class Downloader {
     try {
       // create a read stream
       const stream = fs.createReadStream(item.tempFile)
-      // create a folder
-      item.status = 'Creating download folder...'
-      const folder = await this.drive.getOrCreateFolder('Downloads')
-      // upload current file
-      item.status = 'Uploading file...'
-      const file = await this.drive.createFile(
-        item.name,
-        stream,
-        folder,
-        item.contentType,
-      )
-      // set drive url
-      item.driveUrl = `https://drive.google.com/file/d/${file.id}/view`
+      if (item.forceStop) return
+      // upload to drive
+      await this.drive.createFile(item, stream)
     } catch (err) {
       console.error(err.stack)
-      item.status = err.stack.split('\n')[0]
       item.forceStop = true
+      item.status = err.stack.split('\n')[0]
     }
   }
 
@@ -204,7 +210,7 @@ export class Downloader {
       // remove temp file
       fs.unlinkSync(item.tempFile)
       item.finished = true
-      item.status = 'Done'
+      if (!item.forceStop) item.status = 'Done'
     } catch (err) {
       console.error(err.stack)
       item.status = err.stack.split('\n')[0]

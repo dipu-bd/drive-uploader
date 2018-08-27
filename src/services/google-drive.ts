@@ -2,6 +2,7 @@ import chalk from 'chalk'
 import { google, drive_v3 } from 'googleapis'
 import { OAuth2Client } from 'google-auth-library'
 import { Credentials } from 'google-auth-library/build/src/auth/credentials';
+import { DownloadItem } from './downloader'
 
 const credentials = require('../configs/credentials.json')
 
@@ -33,7 +34,7 @@ export class GoogleDrive {
   public static getAccessTokenUrl(): string {
     const client = this.createClient()
     const authUrl = client.generateAuthUrl({
-      access_type: 'online',
+      access_type: 'offline',
       scope: SCOPES,
     })
     return authUrl
@@ -115,22 +116,7 @@ export class GoogleDrive {
     return []
   }
 
-  async createFile(name: string, stream: NodeJS.ReadableStream, folderId?: string, contentType?: string) {
-    const response = await this.agent.files.create({
-      requestBody: {
-        name: name,
-        mimeType: contentType,
-        parents: folderId ? [ folderId ] : undefined,
-      },
-      media: {
-        mediaType: contentType,
-        body: stream,
-      },
-    })
-    return response.data
-  }
-
-  async getOrCreateFolder(name: string) {
+  async getOrCreateFolder(name: string, uploadHandler?: (progress: any) => void) {
     // Try to find folder
     const files = await this.findFileByName(name)
     if (files.length) return files[0].id
@@ -141,7 +127,45 @@ export class GoogleDrive {
         mimeType: 'application/vnd.google-apps.folder',
         description: 'Created by https://gitlab.com/dipu-bd/drive-uploader',
       },
+    }, {
+      onUploadProgress: uploadHandler,
     })
     return response.data.id
   }
+
+  async createFile(item: DownloadItem, stream: NodeJS.ReadableStream) {
+    // define upload progress handler
+    const uploadHandler = (status: string) => {
+      return (progress: any) => {
+        if (item.forceStop) return
+        const done = progress.bytesRead
+        const total = item.contentLength
+        item.progress = 100 * done / total
+        item.status = `${status} ${item.progress.toFixed(2)}% (${done}/${total})`
+      }
+    }
+
+    // create a folder
+    item.status = 'Creating download folder...'
+    const folder = await this.getOrCreateFolder('Downloads', uploadHandler('Creating folder... '))
+
+    // upload current file
+    item.status = 'Uploading file...'
+    const response = await this.agent.files.create({
+      requestBody: {
+        name: item.name,
+        mimeType: item.contentType,
+        parents: folder ? [ folder ] : undefined,
+      },
+      media: {
+        mediaType: item.contentType,
+        body: stream,
+      },
+    }, {
+      onUploadProgress: uploadHandler('Uploading... '),
+    })
+
+    return response.data
+  }
+
 }
