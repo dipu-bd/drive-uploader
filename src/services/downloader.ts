@@ -72,14 +72,14 @@ export class Downloader {
       cachedDownloader.set(id, new Downloader(id))
       console.log(chalk.dim('Created Downloader instance for'), chalk.blue(id))
     }
-    return cachedDownloader.get(id) as Downloader
+    const downloader = cachedDownloader.get(id) as Downloader
+    downloader.start()
+    return downloader
   }
 
   public static logoutSession(id: string) {
     const downloader = cachedDownloader.get(id)
-    if (!downloader) return
-    downloader.queue = []
-    downloader.list.forEach(v => v.stop())
+    if (downloader) downloader.stop()
   }
 
   public static *allSessions() {
