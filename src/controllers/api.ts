@@ -45,4 +45,30 @@ export class ApiController {
     }
     return res.send('OK')
   }
+
+  static async restartDownload(req: Request, res: Response, next: NextFunction) {
+    const id = req.cookies.id
+    const url = req.query.url
+    const downloader = Downloader.getInstance(id)
+    if (!downloader) {
+      return res.send('Invalid access')
+    }
+    if (!downloader.restartItem(url)) {
+      return res.send('No such item')
+    }
+    return res.send('OK')
+  }
+
+  static async removeDownload(req: Request, res: Response, next: NextFunction) {
+    const id = req.cookies.id
+    const url = req.query.url
+    const downloader = Downloader.getInstance(id)
+    if (!downloader) {
+      return res.send('Invalid access')
+    }
+    if (!downloader.removeItem(url)) {
+      return res.send('No such item')
+    }
+    return res.send('OK')
+  }
 }

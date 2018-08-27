@@ -12,6 +12,8 @@ router.get('/api/list', ApiShield, ApiController.listIds)
 router.get('/api/downloads/:id', ApiShield, ApiController.getDownload)
 router.get('/api/downloads', ApiController.getDownload)
 router.get('/api/download/stop', ApiController.stopDownload)
+router.get('/api/download/remove', ApiController.removeDownload)
+router.get('/api/download/restart', ApiController.restartDownload)
 
 router.get('/auth', AuthController.get)
 router.get('/auth/logout', AuthController.logout)

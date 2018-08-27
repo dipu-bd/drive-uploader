@@ -137,11 +137,7 @@ export class GoogleDrive {
     // define upload progress handler
     const uploadHandler = (status: string) => {
       return (progress: any) => {
-        if (item.forceStop) return
-        const done = progress.bytesRead
-        const total = item.contentLength
-        item.progress = 100 * done / total
-        item.status = `${status} ${item.progress.toFixed(2)}% (${done}/${total})`
+        item.updateProgress('Uploading...', progress.bytesRead)
       }
     }
 

@@ -34,11 +34,22 @@ export class DownloadItem {
   }
 
   stop() {
-    console.log('stopping.....')
+    if (this.finished || this.forceStop) return
     this.forceStop = true
-    this.status = 'Stopped'
+    this.status = 'Stopping...'
     if (this.request) {
       this.request.abort()
+    }
+  }
+
+  updateProgress(status: string, received: number) {
+    if (this.forceStop) return
+    this.status = status
+    if (this.contentLength > 0) {
+      this.progress = received * 100 / this.contentLength
+      const done = Downloader.formatSize(received)
+      const total = Downloader.formatSize(this.contentLength)
+      this.status = `${status} ${this.progress.toFixed(2)}% (${done}/${total})`
     }
   }
 }
@@ -76,12 +87,23 @@ export class Downloader {
     yield* cachedDownloader.keys()
   }
 
+  public static formatSize(size: number) {
+    const suffix = ['B', 'KB', 'MB', 'GB']
+    let index = 0
+    while (size > 1024 && index < suffix.length) {
+      size /= 1024
+      index++
+    }
+    return `${size.toFixed(2)}${suffix[index]}`
+  }
+
   /*-------------------------------------------------------------------------*\
   |                               LOCAL METHODS                               |
   \*-------------------------------------------------------------------------*/
 
   private constructor(id: string) {
     this.id = id
+    setInterval(async () => this.start(), 1000)
   }
 
   get drive(): GoogleDrive {
@@ -92,13 +114,19 @@ export class Downloader {
     return [...this.items.values()].reverse()
   }
 
-  start () {
-    if (this.running > 0) return
+  async wait(ms: number) {
+    return new Promise(resolve => {
+      setTimeout(resolve, ms)
+    })
+  }
+
+  async start () {
+    await this.wait(1000)
     while (this.queue.length) {
       if (this.running <= this.concurrent) {
-        this.running++
         const top = this.queue.shift()
         top && this.downloadItem(top)
+        await this.wait(100)
       }
     }
   }
@@ -119,7 +147,6 @@ export class Downloader {
     this.items.set(item.url, item)
     // add to queue and restart downloading
     this.queue.push(item)
-    this.start()
   }
 
   removeItem(url: string): boolean {
@@ -133,22 +160,37 @@ export class Downloader {
     return true
   }
 
+  restartItem(url: string): boolean {
+    const item = this.items.get(url)
+    if (!item) return false
+    if (!item.finished) {
+      return false
+    }
+    this.removeItem(url)
+    this.addToQueue(url)
+    return true
+  }
+
   /*-------------------------------------------------------------------------*\
   |                               DOWNLOADERS                                 |
   \*-------------------------------------------------------------------------*/
 
   async downloadItem(item: DownloadItem) {
-    item.status = 'Getting metadata'
-    await this.downloadFile(item)
-    await this.uploadToDrive(item)
-    await this.cleanup(item)
-    this.running--
+    try {
+      this.running++
+      await this.downloadFile(item)
+      await this.uploadToDrive(item)
+      await this.cleanup(item)
+    } finally {
+      this.running--
+    }
   }
 
   async downloadFile (item: DownloadItem) {
     if (item.finished || item.forceStop) return
     try {
       // get content type
+      item.status = 'Getting metadata...'
       const meta = await fetch(item.url)
       item.contentType = meta.headers.get('content-type') || ''
       item.contentLength = Number.parseInt(meta.headers.get('content-length') || '0', 10) || 0
@@ -172,11 +214,7 @@ export class Downloader {
         item.request = request
       })
       downloader.on('downloadProgress', progress => {
-        if (item.forceStop) return
-        item.progress = progress.percent * 100
-        const done = progress.transferred
-        const total = item.contentLength
-        item.status = `Downloading... ${item.progress.toFixed(2)}% (${done}/${total})`
+        item.updateProgress('Downloading...', progress.transferred)
       })
       downloader.on('error', error => {
         item.status = error + ''
@@ -208,12 +246,18 @@ export class Downloader {
   async cleanup(item: DownloadItem) {
     try {
       // remove temp file
-      fs.unlinkSync(item.tempFile)
+      if (fs.existsSync(item.tempFile)) {
+        fs.unlinkSync(item.tempFile)
+      }
       item.finished = true
-      if (!item.forceStop) item.status = 'Done'
+      if (!item.forceStop) {
+        item.status = 'Done'
+      } else if (item.status === 'Stopping...') {
+        item.status = 'Stopped'
+      }
     } catch (err) {
       console.error(err.stack)
-      item.status = err.stack.split('\n')[0]
+      item.status = 'Failed to cleanup'
     }
   }
 }

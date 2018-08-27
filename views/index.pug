@@ -14,7 +14,7 @@ block content
       button.btn(onclick="location.href = '/auth/logout'" style="background: red") Logout
       div(style="display: inline-block")
         label(style="padding: 10px 20px")
-          input(type="checkbox" oninput="autoRefresh()")
+          input(type="checkbox" checked oninput="autoRefresh()")
           span Auto Refresh
         button.btn(onclick="refreshItems()" style="background: #ccc") Refresh
 
@@ -22,7 +22,7 @@ block content
       tr
         th(width="300px") File
         th Status
-        th(width="80px") Actions
+        th(width="180px") Actions
       tbody#table-body
         each item in items
           tr
@@ -32,7 +32,11 @@ block content
             else
               td= item.status
             td(style="text-align: center")
-              button.btn.btn-sm(style="background: #ddd" onclick=`stopItem("${item.url}")`) Stop
+              if item.finished
+                button.btn.btn-sm(style="background: #ddd" onclick=`restartItem("${item.url}")`) Restart
+              else
+                button.btn.btn-sm(style="background: gold" onclick=`stopItem("${item.url}")`) Stop
+              button.btn.btn-sm(style="background: red" onclick=`removeItem("${item.url}")`) Remove
         if !items.length
           tr
             td(colspan="10" style="text-align: center")

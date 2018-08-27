@@ -11,6 +11,22 @@ window.stopItem = function (itemUrl) {
   });
 }
 
+window.restartItem = function (itemUrl) {
+  $.ajax({
+    url: '/api/download/restart?url=' + encodeURIComponent(itemUrl),
+  }).done(function (data) {
+    if (data !== 'OK') alert(data);
+  });
+}
+
+window.removeItem = function (itemUrl) {
+  $.ajax({
+    url: '/api/download/remove?url=' + encodeURIComponent(itemUrl),
+  }).done(function (data) {
+    if (data !== 'OK') alert(data);
+  });
+}
+
 window.refreshItems = function () {
   $.ajax({
     url: '/api/downloads',
@@ -25,23 +41,31 @@ window.refreshItems = function () {
       );
     } else {
       updateTable(
-        `<tr>` + data.map(function (item) {
+        data.map(function (item) {
           var body = `<td title="${item.contentType}"><a href="${item.url}" target="_blank">${item.name}</a></td>`;
           if (item.finished && item.driveUrl) {
             body += `<td><a href="${item.driveUrl}" target="_blank">Open in Drive</a></td>`;
           } else {
             body += `<td>${item.status}</td>`;
           }
-          body += `<td><button class="btn btn-sm" style="background: #ddd" onclick="stopItem('${item.url}')">Stop</button>`;
-          return body;
-        }) + `</tr>`
+          // actions
+          var actions = ''
+          if (item.finished) {
+            actions += `<button class="btn btn-sm" style="background: #ddd" onclick="restartItem('${item.url}')">Restart</button>`;
+          } else {
+            actions += `<button class="btn btn-sm" style="background: gold" onclick="stopItem('${item.url}')">Stop</button>`;
+          }
+          actions += `<button class="btn btn-sm" style="background: red" onclick="removeItem('${item.url}')">Remove</button>`;
+          body += '<td>' + actions + '</td>';
+          return `<tr>` + body + `</tr>`;
+        })
       );
     }
   });
 }
 
 var interval = null;
-window.autoRefresh = function (evt) {
+window.autoRefresh = function () {
   if (interval) {
     clearInterval(interval);
     interval = null;
@@ -52,3 +76,5 @@ window.autoRefresh = function (evt) {
     }, 300);
   }
 }
+
+window.autoRefresh()
