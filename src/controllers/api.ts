@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import { GoogleDrive } from '../services/google-drive'
 import { Downloader } from '../services/downloader'
 
-export class AuthController {
+export class ApiController {
   static async listIds(req: Request, res: Response, next: NextFunction) {
     const ids = new Set<string>()
     for (const id of GoogleDrive.allSessions()) {
@@ -14,8 +14,8 @@ export class AuthController {
     res.json(ids)
   }
 
-  static async getDownloads(req: Request, res: Response, next: NextFunction) {
-    const id = req.query.id
+  static async getDownload(req: Request, res: Response, next: NextFunction) {
+    const id = req.params.id
     const downloader = Downloader.getInstance(id)
     if (!downloader) {
       return res.status(500).send('No such downloader')

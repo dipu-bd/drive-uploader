@@ -1,5 +1,9 @@
 import chalk from 'chalk'
+import uuid from 'uuid'
+import path from 'path'
+import fs from 'fs-extra'
 import fetch from 'node-fetch'
+import download from 'download'
 import { GoogleDrive } from './google-drive'
 
 const cachedDownloader = new Map<string, Downloader>()
@@ -14,11 +18,13 @@ export class DownloadItem {
 
   finished = false
   forceStop = false
+  driveUrl?: string
 
+  tempFile = ''
+  downloader: any
   contentType = ''
   contentLength = 0
   contentStream?: NodeJS.ReadableStream
-  driveUrl?: string
 
   constructor(url: string, parent: Downloader) {
     this.url = url
@@ -44,6 +50,10 @@ export class Downloader {
   private running = 0
   private queue = new Array<DownloadItem>()
 
+  /*-------------------------------------------------------------------------*\
+  |                             STATIC METHODS                                |
+  \*-------------------------------------------------------------------------*/
+
   public static getInstance(id: string, create = true): Downloader {
     if (!cachedDownloader.has(id) && create) {
       cachedDownloader.set(id, new Downloader(id))
@@ -64,6 +74,10 @@ export class Downloader {
   public static *allSessions() {
     yield* cachedDownloader.keys()
   }
+
+  /*-------------------------------------------------------------------------*\
+  |                               LOCAL METHODS                               |
+  \*-------------------------------------------------------------------------*/
 
   private constructor(id: string) {
     this.id = id
@@ -118,52 +132,82 @@ export class Downloader {
   async downloadItem(item: DownloadItem) {
     item.status = 'Getting metadata'
     await this.downloadFile(item)
-    if (item.forceStop) return
     await this.uploadToDrive(item)
-    item.finished = true
+    await this.cleanup(item)
     this.running--
   }
 
   async downloadFile (item: DownloadItem) {
     if (item.finished || item.forceStop) return
     try {
-      const res = await fetch(item.url)
-      item.contentStream = res.body
-      item.contentType = res.headers.get('content-type') || ''
-      item.contentLength = Number.parseInt(res.headers.get('content-length') || '0', 10) || 0
-      if (!item.contentType) {
-        throw new Error('No content type')
-      }
-      if (!item.contentStream) {
-        throw new Error('No content stream')
-        item.finished = true
-      }
-      item.status = `Content type = '${item.contentType}', Length = ${item.contentLength} bytes`
+      // get content type
+      const meta = await fetch(item.url)
+      item.contentType = meta.headers.get('content-type') || ''
+      item.contentLength = Number.parseInt(meta.headers.get('content-length') || '0', 10) || 0
+
+      // create a temp file
+      const tempPath = path.resolve(__dirname, '../../.downloads')
+      const filename = uuid.v4()
+      fs.ensureDirSync(tempPath)
+      item.tempFile = path.join(tempPath, filename)
+
+      // start downloading
+      item.status = 'Downloading... '
+      const downloader = download(item.url, tempPath, {
+        filename: filename,
+        retries: 3,
+      })
+
+      // check progress
+      downloader.on('downloadProgress', progress => {
+        item.progress = progress.percent
+        item.status = `${progress.percent.toFixed(2)}% (${progress.transferred}/${progress.total})`
+      })
+      downloader.on('error', error => {
+        item.status = error + ''
+        item.forceStop = true
+      })
+      return downloader
     } catch (err) {
       item.status = err.stack.split('\n')[0]
-      item.finished = true
+      item.forceStop = true
     }
   }
 
   async uploadToDrive (item: DownloadItem) {
     if (item.finished || item.forceStop) return
     try {
+      // create a read stream
+      const stream = fs.createReadStream(item.tempFile)
+      // create a folder
       item.status = 'Creating download folder...'
       const folder = await this.drive.getOrCreateFolder('Downloads')
+      // upload current file
       item.status = 'Uploading file...'
-      if (!item.contentStream) return
       const file = await this.drive.createFile(
         item.name,
-        item.contentStream,
+        stream,
         folder,
         item.contentType,
       )
+      // set drive url
       item.driveUrl = `https://drive.google.com/file/d/${file.id}/view`
-      item.status = 'Done'
     } catch (err) {
       console.error(err.stack)
       item.status = err.stack.split('\n')[0]
       item.forceStop = true
+    }
+  }
+
+  async cleanup(item: DownloadItem) {
+    try {
+      // remove temp file
+      fs.unlinkSync(item.tempFile)
+      item.finished = true
+      item.status = 'Done'
+    } catch (err) {
+      console.error(err.stack)
+      item.status = err.stack.split('\n')[0]
     }
   }
 }

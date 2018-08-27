@@ -27,3 +27,12 @@ export function CheckToken(req: Request, res: Response, next: NextFunction) {
   }
   next()
 }
+
+export function ApiShield(req: Request, res: Response, next: NextFunction) {
+  // Check if has access token
+  const pass = req.query.pass
+  if (pass !== 'sleepy_cat_in_a_box') {
+    next(new Error('Not authorized'))
+  }
+  next()
+}
