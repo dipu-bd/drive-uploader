@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { GoogleDrive } from '../services/google-drive'
 import { ErrorData } from '../models/error'
+import { Downloader } from '../services/downloader';
 
 export class AuthController {
   static async get(req: Request, res: Response, next: NextFunction) {
@@ -19,11 +20,13 @@ export class AuthController {
     }
   }
 
-  static async refreshToken(req: Request, res: Response, next: NextFunction) {
+  static async logout(req: Request, res: Response, next: NextFunction) {
     try {
       const id = req.cookies.id
-      const token = await GoogleDrive.generateRefreshToken(id)
-      GoogleDrive.saveAccessToken(id, token)
+      Downloader.logoutSession(id)
+      GoogleDrive.logoutSession(id)
+      res.clearCookie('id')
+      res.redirect('/')
     } catch (err) {
       res.render('error', {
         error: err,

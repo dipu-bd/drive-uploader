@@ -2,11 +2,12 @@ import chalk from 'chalk'
 import fetch from 'node-fetch'
 import { GoogleDrive } from './google-drive'
 
-const cacheDownloader = new Map<string, Downloader>()
+const cachedDownloader = new Map<string, Downloader>()
 
 export class DownloadItem {
   readonly url: string
   readonly name: string
+  readonly parent: Downloader
 
   progress: number = 0
   status: string = 'Pending'
@@ -19,20 +20,19 @@ export class DownloadItem {
   contentStream?: NodeJS.ReadableStream
   driveUrl?: string
 
-  private constructor(url: string) {
+  constructor(url: string, parent: Downloader) {
     this.url = url
+    this.parent = parent
     this.name = url.split('/').slice(-1)[0]
   }
 
-  static createInstance (url: string): DownloadItem {
-    const checker: RegExp = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/gi
-    if (!checker.test(url)) {
-      throw new Error('Invalid url')
-    }
-    if (url.endsWith('/')) {
-      url = url.substr(0, url.length - 1)
-    }
-    return new DownloadItem(url)
+  stop() {
+    this.forceStop = true
+  }
+
+  delete() {
+    if (!this.parent) return
+    this.parent.removeItem(this.url)
   }
 }
 
@@ -44,12 +44,25 @@ export class Downloader {
   private running = 0
   private queue = new Array<DownloadItem>()
 
-  public static getInstance(id: string): Downloader {
-    if (!cacheDownloader.has(id)) {
-      cacheDownloader.set(id, new Downloader(id))
+  public static getInstance(id: string, create = true): Downloader {
+    if (!cachedDownloader.has(id) && create) {
+      cachedDownloader.set(id, new Downloader(id))
       console.log(chalk.dim('Created Downloader instance for'), chalk.blue(id))
     }
-    return cacheDownloader.get(id) as Downloader
+    return cachedDownloader.get(id) as Downloader
+  }
+
+  public static logoutSession(id: string) {
+    const downloader = cachedDownloader.get(id)
+    if (downloader) {
+      downloader.queue = []
+      downloader.list.forEach(v => v.forceStop = true)
+    }
+    cachedDownloader.delete(id)
+  }
+
+  public static *allSessions() {
+    yield* cachedDownloader.keys()
   }
 
   private constructor(id: string) {
@@ -75,11 +88,27 @@ export class Downloader {
     }
   }
 
-  addToQueue(item: DownloadItem) {
-    if (this.items.has(item.url)) return
+  addToQueue(url: string) {
+    // check url
+    const checker: RegExp = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/gi
+    if (!checker.test(url)) {
+      throw new Error('Invalid url')
+    }
+    if (url.endsWith('/')) {
+      url = url.substr(0, url.length - 1)
+    }
+    // do not take if already exists
+    if (this.items.has(url)) return
+    // add to list
+    const item = new DownloadItem(url, this)
     this.items.set(item.url, item)
+    // add to queue and restart downloading
     this.queue.push(item)
     this.start()
+  }
+
+  removeItem(url: string) {
+    this.items.delete(url)
   }
 
   /*-------------------------------------------------------------------------*\
@@ -88,15 +117,15 @@ export class Downloader {
 
   async downloadItem(item: DownloadItem) {
     item.status = 'Getting metadata'
-    await this.getMetadata(item)
+    await this.downloadFile(item)
     if (item.forceStop) return
-    await this.createDriveFile(item)
+    await this.uploadToDrive(item)
     item.finished = true
     this.running--
   }
 
-  async getMetadata (item: DownloadItem) {
-    if (item.finished) return
+  async downloadFile (item: DownloadItem) {
+    if (item.finished || item.forceStop) return
     try {
       const res = await fetch(item.url)
       item.contentStream = res.body
@@ -116,8 +145,8 @@ export class Downloader {
     }
   }
 
-  async createDriveFile (item: DownloadItem) {
-    if (item.finished) return
+  async uploadToDrive (item: DownloadItem) {
+    if (item.finished || item.forceStop) return
     try {
       item.status = 'Creating download folder...'
       const folder = await this.drive.getOrCreateFolder('Downloads')
@@ -134,7 +163,7 @@ export class Downloader {
     } catch (err) {
       console.error(err.stack)
       item.status = err.stack.split('\n')[0]
-      item.finished = true
+      item.forceStop = true
     }
   }
 }

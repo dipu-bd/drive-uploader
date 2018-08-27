@@ -33,7 +33,7 @@ export class GoogleDrive {
   public static getAccessTokenUrl(): string {
     const client = this.createClient()
     const authUrl = client.generateAuthUrl({
-      access_type: 'offline',
+      access_type: 'online',
       scope: SCOPES,
     })
     return authUrl
@@ -72,6 +72,18 @@ export class GoogleDrive {
     if (!client) throw new Error('No client found for ' + id)
     const res = await client.refreshAccessToken()
     return res.credentials
+  }
+
+  public static logoutSession(id: string) {
+    cachedTokens.delete(id)
+    cachedClients.delete(id)
+    cachedGoogleDrives.delete(id)
+  }
+
+  public static *allSessions() {
+    yield* cachedTokens.keys()
+    yield* cachedClients.keys()
+    yield* cachedGoogleDrives.keys()
   }
 
   /*-------------------------------------------------------------------------*\

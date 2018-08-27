@@ -2,14 +2,15 @@ extends layout
 
 block content
   main: section#index
-    h1
-      span Drive Uploader <br>
-      small: a.refresh-token(href="/auth/refresh") Refresh Access Token
-
-    form(action="/")
+    h1 Drive Uploader
+    form(method="post")
       label File URL
-      input(type="text" name="url" placeholder="Enter a file url")
-      button(type="submit") Download
+      input(type="text" name="url" placeholder="Enter a file url" required)
+      button.btn(type="submit" style="background: #39f") Download
+
+    .control-area
+      button.btn(onclick="location.href = '/auth/logout'" style="background: red") Logout
+      button.btn(onclick="location.reload()" style="background: #ccc") Refresh
 
     table
       tr

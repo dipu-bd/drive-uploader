@@ -24,29 +24,18 @@ main
     input
       flex-grow: 1
       padding: 10px
+      margin: 0 10px
       border: 1px solid #dededf
       outline: none
       border-radius: 3px
       font-size: 16px
-    button
-      display: inline-block
-      width: 150px
-      padding: 10px;
-      margin: 0 10px
-      font-weight: bold
-      outline: none
-      border: 1px solid #cce
-      border-radius: 3px
-      background: #90caf9
-      &:hover
-        outline: none
-        background: #64b5f6;
-      &:active
-        outline: none
-        background: #42a5f5;
+  .control-area
+    margin-top: 20px
+    display: flex
+    justify-content: space-between
   table
     width: 100%
-    margin-top: 20px
+    margin-top: 10px
     border-spacing: 0
     border: 1px solid #d2d3d7
     border-left: none
@@ -56,3 +45,23 @@ main
       border: 1px solid #d2d3d7
       border-right: none
       border-bottom: none
+  .btn
+    cursor: pointer
+    display: inline-block
+    width: 150px
+    padding: 10px
+    font-weight: bold
+    font-size: 16px
+    outline: none
+    border: 1px solid #cce
+    border-radius: 3px
+    text-align: center
+    text-rendering: none
+    opacity: 0.95
+    &:hover
+      outline: none
+      opacity: 0.85
+      text-rendering: none
+    &:active
+      outline: none
+      opacity: 1.0
