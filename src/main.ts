@@ -8,6 +8,8 @@ import routes from './routes'
 
 declare var __DEV__: boolean
 
+require('dotenv').config()
+
 export class Server {
   public app: express.Express
   public port: number
