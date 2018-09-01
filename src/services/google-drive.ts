@@ -1,7 +1,7 @@
 import chalk from 'chalk'
-import { AxiosResponse } from 'axios'
+import { AxiosResponse, Cancel } from 'axios'
 import { google, drive_v3 } from 'googleapis'
-import { OAuth2Client, auth } from 'google-auth-library';
+import { OAuth2Client, auth } from 'google-auth-library'
 import { Credentials } from 'google-auth-library/build/src/auth/credentials'
 import { DownloadItem } from './downloader'
 import { MethodOptions } from 'googleapis-common'
@@ -147,7 +147,7 @@ export class GoogleDrive {
       mimeType: item.contentType,
       // size: item.contentLength.toString(),
       parents: folder ? [ folder ] : undefined,
-    }
+    } as drive_v3.Schema$File
     const media = {
       mediaType: item.contentType,
       body: stream,
@@ -158,7 +158,15 @@ export class GoogleDrive {
       onUploadProgress(progress: any) {
         item.updateProgress('Uploading...', progress.bytesRead)
       },
-    }
+      cancelToken: {
+        throwIfRequested() {
+          // throw new Error('Cancelled by user')
+        },
+        promise: new Promise<Cancel>(resolve => {
+          item.uploadCanceller = resolve
+        }),
+      },
+    } as MethodOptions
 
     // check existing file
     item.status = 'Checking existing files...'

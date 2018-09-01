@@ -4,6 +4,7 @@ import path from 'path'
 import fs from 'fs-extra'
 import fetch from 'node-fetch'
 import download from 'download'
+import { Cancel } from 'axios'
 import { GoogleDrive } from './google-drive'
 
 const cachedDownloader = new Map<string, Downloader>()
@@ -26,6 +27,7 @@ export class DownloadItem {
   contentLength = 0
   request?: any
   contentStream?: NodeJS.ReadableStream
+  uploadCanceller?: (value: Cancel) => void
 
   constructor(url: string, parent: Downloader) {
     this.url = url
@@ -37,8 +39,8 @@ export class DownloadItem {
     if (this.finished || this.forceStop) return
     this.forceStop = true
     this.status = 'Stopping...'
-    if (this.contentStream) {
-      this.contentStream.pause()
+    if (this.uploadCanceller) {
+      this.uploadCanceller({ message: 'Cancelled by user' })
     }
     if (this.request) {
       this.request.abort()
@@ -264,9 +266,10 @@ export class Downloader {
       // upload to drive
       await this.drive.createFile(item, stream)
     } catch (err) {
-      console.error(err.stack)
+      console.error(err && err.stack)
       item.forceStop = true
-      item.status = err.stack.split('\n')[0]
+      item.status = 'Failed to upload'
+      item.status = ((err && err.stack) || 'Error: Unknown').split('\n')[0]
     }
   }
 
@@ -283,7 +286,7 @@ export class Downloader {
         item.status = 'Stopped'
       }
     } catch (err) {
-      console.error(err.stack)
+      console.error(err && err.stack)
       item.status = 'Failed to cleanup'
     }
   }
