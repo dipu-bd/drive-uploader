@@ -145,6 +145,8 @@ export class GoogleDrive {
         name: item.name,
         mimeType: item.contentType,
         parents: folder ? [ folder ] : undefined,
+        size: item.contentLength.toString(),
+        description: item.url,
       },
       media: {
         mediaType: item.contentType,
