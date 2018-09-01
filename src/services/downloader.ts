@@ -37,6 +37,9 @@ export class DownloadItem {
     if (this.finished || this.forceStop) return
     this.forceStop = true
     this.status = 'Stopping...'
+    if (this.contentStream) {
+      this.contentStream.pause()
+    }
     if (this.request) {
       this.request.abort()
     }
@@ -256,7 +259,7 @@ export class Downloader {
       // get and unlink the read stream
       const stream = item.contentStream
       if (item.forceStop || !stream) return
-      item.contentStream = undefined
+      // item.contentStream = undefined
 
       // upload to drive
       await this.drive.createFile(item, stream)

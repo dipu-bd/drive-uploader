@@ -140,57 +140,47 @@ export class GoogleDrive {
     item.status = 'Creating download folder...'
     const folder = await this.getOrCreateFolder('Downloads')
 
-    // check existing file
-    let fileId: string | undefined
-    item.status = 'Checking existing files...'
-    const files = await this.findFileByName(item.name, folder)
-    if (files.length) {
-      fileId = files[0].id
-    } else {
-      item.status = 'Creating new file...'
-      const response = await this.agent.files.generateIds({
-        count: 1,
-      })
-      const ids = response.data.ids
-      if (ids && ids.length) {
-        fileId = ids[0]
-      }
+    // make configs
+    const requestBody = {
+      name: item.name,
+      description: item.url,
+      mimeType: item.contentType,
+      // size: item.contentLength.toString(),
+      parents: folder ? [ folder ] : undefined,
     }
-
-    // uploading to file
-    item.status = 'Uploading file...'
-    const response = await this.agent.files.update({
-      fileId,
-      requestBody: {
-        name: item.name,
-        description: item.url,
-        mimeType: item.contentType,
-        // size: item.contentLength.toString(),
-        parents: folder ? [ folder ] : undefined,
-      },
-      media: {
-        body: stream,
-        mediaType: item.contentType,
-      },
-    }, {
+    const media = {
+      mediaType: item.contentType,
+      body: stream,
+    }
+    const options = {
       maxRedirects: 0,
       maxContentLength: 128 * 1024 * 1024 * 1024,
       onUploadProgress(progress: any) {
         item.updateProgress('Uploading...', progress.bytesRead)
       },
-      cancelToken: {
-        promise: new Promise((resolve, reject) => {
-          while (!item.forceStop || !item.finished) {
-            continue
-          }
-          if (item.finished) reject('Finished downloading')
-          else resolve({ message: 'Cancelled by user' })
-        }),
-        throwIfRequested() {
-          item.status = 'Thrown on cancel'
-        },
-      },
-    })
+    }
+
+    // check existing file
+    item.status = 'Checking existing files...'
+    const files = await this.findFileByName(item.name, folder)
+
+    // create or update existing file
+    let response: AxiosResponse<drive_v3.Schema$File>
+    if (!files.length) {
+      item.status = 'Creating new file...'
+      response = await this.agent.files.create({
+        keepRevisionForever: true,
+        requestBody,
+        media,
+      }, options)
+    } else {
+      item.status = 'Updating existing file...'
+      response = await this.agent.files.update({
+        keepRevisionForever: true,
+        fileId: files[0].id,
+        media,
+      }, options)
+    }
 
     // process response to get file
     const file = response.data
