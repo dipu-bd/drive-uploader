@@ -1,7 +1,8 @@
 import chalk from 'chalk'
+import { AxiosResponse } from 'axios'
 import { google, drive_v3 } from 'googleapis'
-import { OAuth2Client } from 'google-auth-library'
-import { Credentials } from 'google-auth-library/build/src/auth/credentials';
+import { OAuth2Client, auth } from 'google-auth-library';
+import { Credentials } from 'google-auth-library/build/src/auth/credentials'
 import { DownloadItem } from './downloader'
 
 const credentials = require('../configs/credentials.json')
@@ -138,27 +139,43 @@ export class GoogleDrive {
     item.status = 'Creating download folder...'
     const folder = await this.getOrCreateFolder('Downloads')
 
-    // upload current file
-    item.status = 'Uploading file...'
-    const response = await this.agent.files.create({
-      requestBody: {
-        name: item.name,
-        mimeType: item.contentType,
-        parents: folder ? [ folder ] : undefined,
-        size: item.contentLength.toString(),
-        description: item.url,
-      },
-      media: {
-        mediaType: item.contentType,
-        body: stream,
-      },
-    }, {
+    // make configs
+    const requestBody = {
+      name: item.name,
+      mimeType: item.contentType,
+      parents: folder ? [ folder ] : undefined,
+      size: item.contentLength.toString(),
+      description: item.url,
+    }
+    const media = {
+      mediaType: item.contentType,
+      body: stream,
+    }
+    const options = {
       maxRedirects: 0,
       maxContentLength: 128 * 1024 * 1024 * 1024,
-      onUploadProgress(progress) {
+      onUploadProgress(progress: any) {
         item.updateProgress('Uploading...', progress.bytesRead)
       },
-    })
+    }
+
+    // create or update existing file
+    let response: AxiosResponse<drive_v3.Schema$File>
+    const files = await this.findFileByName(item.name, folder)
+    if (!files.length) {
+      item.status = 'Creating new file...'
+      response = await this.agent.files.create({
+        requestBody,
+        media,
+      }, options)
+    } else {
+      item.status = 'Updating existing file...'
+      response = await this.agent.files.update({
+        fileId: files[0].id,
+        requestBody,
+        media,
+      }, options)
+    }
 
     const file = response.data
     item.driveUrl = `https://drive.google.com/file/d/${file.id}/view`
