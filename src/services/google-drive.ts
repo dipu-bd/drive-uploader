@@ -151,6 +151,8 @@ export class GoogleDrive {
         body: stream,
       },
     }, {
+      maxRedirects: 0,
+      maxContentLength: 128 * 1024 * 1024 * 1024,
       onUploadProgress(progress) {
         item.updateProgress('Uploading...', progress.bytesRead)
       },
