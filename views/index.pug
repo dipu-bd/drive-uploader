@@ -8,15 +8,15 @@ block content
     form(method="post")
       label File URL
       input(type="text" name="url" placeholder="Enter a file url" required)
-      button.btn(type="submit" style="background: #39f") Download
+      button.btn(type="submit" style="background: #e1f5fe") Download
 
     .control-area
-      button.btn(onclick="location.href = '/auth/logout'" style="background: red") Logout
+      button.btn(onclick="location.href = '/auth/logout'" style="background: #1976d2; color: white") Renew Login
       div(style="display: inline-block")
         label(style="padding: 10px 20px")
           input(type="checkbox" checked oninput="autoRefresh()")
           span Auto Refresh
-        button.btn(onclick="refreshItems()" style="background: #ccc") Refresh
+        button.btn(onclick="refreshItems()" style="background: #e0e0e0") Refresh
 
     table
       tr
@@ -33,10 +33,10 @@ block content
               td= item.status
             td(style="text-align: center")
               if item.finished
-                button.btn.btn-sm(style="background: #ddd" onclick=`restartItem("${item.url}")`) Restart
+                button.btn.btn-sm(style="background: #eee" onclick=`restartItem("${item.url}")`) Restart
               else
-                button.btn.btn-sm(style="background: gold" onclick=`stopItem("${item.url}")`) Stop
-              button.btn.btn-sm(style="background: red" onclick=`removeItem("${item.url}")`) Remove
+                button.btn.btn-sm(style="background: #fff9c4" onclick=`stopItem("${item.url}")`) Stop
+              button.btn.btn-sm(style="background: #d32f2f; color: white" onclick=`removeItem("${item.url}")`) Remove
         if !items.length
           tr
             td(colspan="10" style="text-align: center")

@@ -51,11 +51,11 @@ window.refreshItems = function () {
           // actions
           var actions = ''
           if (item.finished) {
-            actions += `<button class="btn btn-sm" style="background: #ddd" onclick="restartItem('${item.url}')">Restart</button>`;
+            actions += `<button class="btn btn-sm" style="background: #eee" onclick="restartItem('${item.url}')">Restart</button>`;
           } else {
-            actions += `<button class="btn btn-sm" style="background: gold" onclick="stopItem('${item.url}')">Stop</button>`;
+            actions += `<button class="btn btn-sm" style="background: #fff9c4" onclick="stopItem('${item.url}')">Stop</button>`;
           }
-          actions += `<button class="btn btn-sm" style="background: red" onclick="removeItem('${item.url}')">Remove</button>`;
+          actions += `<button class="btn btn-sm" style="background: #d32f2f; color: white" onclick="removeItem('${item.url}')">Remove</button>`;
           body += '<td>' + actions + '</td>';
           return `<tr>` + body + `</tr>`;
         })

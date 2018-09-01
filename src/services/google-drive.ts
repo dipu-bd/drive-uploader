@@ -4,6 +4,7 @@ import { google, drive_v3 } from 'googleapis'
 import { OAuth2Client, auth } from 'google-auth-library';
 import { Credentials } from 'google-auth-library/build/src/auth/credentials'
 import { DownloadItem } from './downloader'
+import { MethodOptions } from 'googleapis-common'
 
 const credentials = require('../configs/credentials.json')
 
@@ -113,7 +114,7 @@ export class GoogleDrive {
         (folder ? `and '${folder}' in parents` : ''),
     })
     if (response.data.files) {
-      return response.data.files
+      return response.data.files.filter(file => !file.trashed)
     }
     return []
   }
@@ -139,46 +140,66 @@ export class GoogleDrive {
     item.status = 'Creating download folder...'
     const folder = await this.getOrCreateFolder('Downloads')
 
-    // make configs
-    const requestBody = {
-      name: item.name,
-      mimeType: item.contentType,
-      parents: folder ? [ folder ] : undefined,
-      size: item.contentLength.toString(),
-      description: item.url,
+    // check existing file
+    let fileId: string | undefined
+    item.status = 'Checking existing files...'
+    const files = await this.findFileByName(item.name, folder)
+    if (files.length) {
+      fileId = files[0].id
+    } else {
+      item.status = 'Creating new file...'
+      const response = await this.agent.files.generateIds({
+        count: 1,
+      })
+      const ids = response.data.ids
+      if (ids && ids.length) {
+        fileId = ids[0]
+      }
     }
-    const media = {
-      mediaType: item.contentType,
-      body: stream,
-    }
-    const options = {
+
+    // uploading to file
+    item.status = 'Uploading file...'
+    const response = await this.agent.files.update({
+      fileId,
+      requestBody: {
+        name: item.name,
+        description: item.url,
+        mimeType: item.contentType,
+        // size: item.contentLength.toString(),
+        parents: folder ? [ folder ] : undefined,
+      },
+      media: {
+        body: stream,
+        mediaType: item.contentType,
+      },
+    }, {
       maxRedirects: 0,
       maxContentLength: 128 * 1024 * 1024 * 1024,
       onUploadProgress(progress: any) {
         item.updateProgress('Uploading...', progress.bytesRead)
       },
-    }
+      cancelToken: {
+        promise: new Promise((resolve, reject) => {
+          while (!item.forceStop || !item.finished) {
+            continue
+          }
+          if (item.finished) reject('Finished downloading')
+          else resolve({ message: 'Cancelled by user' })
+        }),
+        throwIfRequested() {
+          item.status = 'Thrown on cancel'
+        },
+      },
+    })
 
-    // create or update existing file
-    let response: AxiosResponse<drive_v3.Schema$File>
-    const files = await this.findFileByName(item.name, folder)
-    if (!files.length) {
-      item.status = 'Creating new file...'
-      response = await this.agent.files.create({
-        requestBody,
-        media,
-      }, options)
-    } else {
-      item.status = 'Updating existing file...'
-      response = await this.agent.files.update({
-        fileId: files[0].id,
-        requestBody,
-        media,
-      }, options)
-    }
-
+    // process response to get file
     const file = response.data
-    item.driveUrl = `https://drive.google.com/file/d/${file.id}/view`
+    if (Number.parseInt(file.size || '0', 10) !== item.contentLength) {
+      item.status = `Upload failed at ${file.size} (Length: ${item.contentLength})`
+    } else {
+      item.driveUrl = `https://drive.google.com/file/d/${file.id}/view`
+    }
+
     return file
   }
 

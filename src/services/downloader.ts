@@ -14,7 +14,7 @@ export class DownloadItem {
   readonly parent: Downloader
 
   progress: number = 0
-  status: string = 'Pending'
+  status: string = 'Pending...'
 
   finished = false
   forceStop = false
