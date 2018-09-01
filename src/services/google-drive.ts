@@ -110,11 +110,11 @@ export class GoogleDrive {
 
   async findFileByName(name: string, folder?: string) {
     let response = await this.agent.files.list({
-      q: `name = '${name}'` +
+      q: `trashed = false and name = '${name}'` +
         (folder ? `and '${folder}' in parents` : ''),
     })
     if (response.data.files) {
-      return response.data.files.filter(file => !file.trashed)
+      return response.data.files
     }
     return []
   }
