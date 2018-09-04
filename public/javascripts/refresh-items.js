@@ -42,14 +42,16 @@ window.refreshItems = function () {
     } else {
       updateTable(
         data.map(function (item) {
+          // title
           var body = `<td title="${item.contentType}"><a href="${item.url}" target="_blank">${item.name}</a></td>`;
-          if (item.finished && item.driveUrl) {
-            body += `<td><a href="${item.driveUrl}" target="_blank">Open in Drive</a></td>`;
-          } else {
-            body += `<td>${item.status}</td>`;
+          // status
+          body += `<td>${item.status} `;
+          if (item.driveUrl) {
+            body += `<a href="${item.driveUrl}" target="_blank">Open in Drive</a>`;
           }
+          body += '</td>';
           // actions
-          var actions = ''
+          var actions = '';
           if (item.finished) {
             actions += `<button class="btn btn-sm" style="background: #eee" onclick="restartItem('${item.url}')">Restart</button>`;
           } else {

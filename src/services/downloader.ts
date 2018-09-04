@@ -52,10 +52,20 @@ export class DownloadItem {
     this.status = status
     if (this.contentLength > 0) {
       this.progress = received * 100 / this.contentLength
-      const done = Downloader.formatSize(received)
-      const total = Downloader.formatSize(this.contentLength)
+      const done = DownloadItem.formatSize(received)
+      const total = DownloadItem.formatSize(this.contentLength)
       this.status = `${status} ${this.progress.toFixed(2)}% (${done}/${total})`
     }
+  }
+
+  public static formatSize(size: number) {
+    const suffix = ['B', 'KB', 'MB', 'GB']
+    let index = 0
+    while (size > 1024 && index < suffix.length) {
+      size /= 1024
+      index++
+    }
+    return `${size.toFixed(2)}${suffix[index]}`
   }
 }
 
@@ -89,16 +99,6 @@ export class Downloader {
 
   public static *allSessions() {
     yield* cachedDownloader.keys()
-  }
-
-  public static formatSize(size: number) {
-    const suffix = ['B', 'KB', 'MB', 'GB']
-    let index = 0
-    while (size > 1024 && index < suffix.length) {
-      size /= 1024
-      index++
-    }
-    return `${size.toFixed(2)}${suffix[index]}`
   }
 
   /*-------------------------------------------------------------------------*\

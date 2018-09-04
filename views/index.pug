@@ -27,10 +27,10 @@ block content
         each item in items
           tr
             td: a(href=item.url target="_blank")= item.name
-            if item.finished && item.driveUrl
-              td: a(href=item.driveUrl target="_blank") Open in drive
-            else
-              td= item.status
+            td
+              span item.status
+              if item.driveUrl
+                a(href=item.driveUrl target="_blank") Open in drive
             td(style="text-align: center")
               if item.finished
                 button.btn.btn-sm(style="background: #eee" onclick=`restartItem("${item.url}")`) Restart

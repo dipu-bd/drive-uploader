@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { GoogleDrive } from '../services/google-drive'
 import { ErrorData } from '../models/error'
-import { Downloader } from '../services/downloader';
+import { Downloader } from '../services/downloader'
 
 export class AuthController {
   static async get(req: Request, res: Response, next: NextFunction) {

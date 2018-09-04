@@ -70,13 +70,6 @@ export class GoogleDrive {
     return res.tokens
   }
 
-  public static async generateRefreshToken(id: string) {
-    const client = cachedClients.get(id) as OAuth2Client
-    if (!client) throw new Error('No client found for ' + id)
-    const res = await client.refreshAccessToken()
-    return res.credentials
-  }
-
   public static logoutSession(id: string) {
     cachedTokens.delete(id)
     cachedClients.delete(id)
@@ -194,7 +187,8 @@ export class GoogleDrive {
     const file = response.data
     if (Number.parseInt(file.size || '0', 10) !== item.contentLength) {
       item.status = `Upload failed at ${file.size} (Length: ${item.contentLength})`
-    } else {
+    }
+    if (file.id) {
       item.driveUrl = `https://drive.google.com/file/d/${file.id}/view`
     }
 
