@@ -61,6 +61,7 @@ main {
   border: 1px solid #d2d3d7;
   border-right: none;
   border-bottom: none;
+  word-wrap: break-word;
 }
 
 #index .btn {

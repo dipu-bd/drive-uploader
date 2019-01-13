@@ -32,7 +32,7 @@ export class DownloadItem {
   constructor(url: string, parent: Downloader) {
     this.url = url
     this.parent = parent
-    this.name = url.split('/').slice(-1)[0]
+    this.name = url.split('?')[0].split('/').slice(-1)[0]
   }
 
   stop() {
